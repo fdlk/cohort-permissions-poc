@@ -1,0 +1,38 @@
+type Application {
+  id: String!
+  name: String!
+  roles: [Role]
+}
+
+type Role {
+  id: String!
+  name: String!
+  isDefault: Boolean!
+  isSuperRole: Boolean!
+}
+
+type User {
+  id: String!
+  email: String!
+  firstName: String
+  lastName: String
+  roles: [String]
+}
+
+type Query {
+  application: Application
+  registeredUsers: [User]
+  users(searchQuery: String): [User]
+}
+
+type Registration {
+  id: String!
+  applicationId: String!
+  roles: [String]
+}
+
+type Mutation {
+  register(userId: String, roles: [String]): Registration
+  updateRoles(userId: String, roles: [String]): Registration
+  unregister(userId: String): String
+}
