@@ -1,16 +1,20 @@
 const { ApolloServer, gql } = require('apollo-server-express')
 const { RESTDataSource } = require('apollo-datasource-rest')
 const express = require("express")
+const { auth } = require('express-openid-connect')
 const morgan = require("morgan")
+const cors = require("cors")
+
 require("dotenv").config()
 
 class FusionAPI extends RESTDataSource {
   constructor() {
     super();
-    this.baseURL = process.env.FUSION_API_URL
+    this.baseURL = `${process.env.ISSUER_BASE_URL}api/`
   }
 
   async searchUsers(queryString) {
+    console.log(this.baseURL)
     return this.get('user/search', {queryString})
   }
 
@@ -86,12 +90,10 @@ const resolvers = {
   Mutation: {
     register: async (_source, {userId, applicationId, roles}, {dataSources}) => {
       const response = await(dataSources.fusionAPI.register(userId, applicationId, roles))
-      console.log(response)
       return response.registration
     },
     updateRoles: async (_source, {userId, applicationId, roles}, {dataSources}) => {
       const response = await(dataSources.fusionAPI.updateRoles(userId, applicationId, roles))
-      console.log(response)
       return response.registration
     },
     unregister: async(_source, {userId, applicationId}, {dataSources}) => {
@@ -106,18 +108,27 @@ const dataSources = () => ({
 })
 
 const context = ({ req }) => {
-  const authHeader = req.headers.authorization || ''
-  // console.log(authHeader)
   return { token: process.env.FUSION_API_TOKEN }
 }
 
 const app = express()
 app.use(morgan("common"))
 app.use(express.json())
+app.use(auth({
+  required: false,
+  authorizationParams: {
+    response_type: 'code'
+  },
+}))
+app.use(cors({ origin: true, credentials: true }))
 
-const apollo = new ApolloServer({ typeDefs, resolvers, dataSources, context });
-apollo.applyMiddleware({ app });
+app.use('/user', (req, res) => {
+  console.log(req.openid.user)
+  res.send(`hello ${req.openid.user.email}. You have roles ${req.openid.user.roles}`)
+})
 
+const apollo = new ApolloServer({ typeDefs, resolvers, dataSources, context })
+apollo.applyMiddleware({ app })
 const port =  process.env.SERVER_PORT || 4000
 app.listen(port, () => {
   console.log(`🚀 Listening on port ${port}`);
