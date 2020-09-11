@@ -12,24 +12,24 @@ module.exports = {
     },
   },
   User: {
-    roles: async (user, _args, {applicationId}) => {
+    roles: (user, _args, {applicationId}) => {
       return (user.registrations||[])
         .filter((reg)=>reg.applicationId === applicationId)
         .flatMap(reg => reg.roles)
+    },
+    registered: (user, _args, {applicationId}) => {
+      return (user.registrations||[])
+        .some((reg) => reg.applicationId === applicationId)
     }
   },
   Mutation: {
-    register: async (_source, {userId, roles}, {dataSources, applicationId}) => {
-      const response = await(dataSources.fusionAPI.register(userId, applicationId, roles))
-      return response.registration
-    },
-    updateRoles: async (_source, {userId, roles}, {dataSources, applicationId}) => {
-      const response = await(dataSources.fusionAPI.updateRoles(userId, applicationId, roles))
-      return response.registration
+    register: async (_source, {userId}, {dataSources, applicationId}) => {
+      await(dataSources.fusionAPI.register(userId, applicationId))
+      return dataSources.fusionAPI.getUser(userId)
     },
     unregister: async(_source, {userId}, {dataSources, applicationId}) => {
       await(dataSources.fusionAPI.unregister(userId, applicationId))
-      return "OK"
+      return dataSources.fusionAPI.getUser(userId)
     }
   }
 }

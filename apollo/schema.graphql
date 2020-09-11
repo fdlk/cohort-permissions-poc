@@ -17,6 +17,8 @@ type User {
   email: String!
   firstName: String
   lastName: String
+  name: String
+  registered: Boolean!
   roles: [String]
 }
 
@@ -33,7 +35,6 @@ type Registration {
 }
 
 type Mutation {
-  register(userId: String, roles: [String]): Registration
-  updateRoles(userId: String, roles: [String]): Registration
-  unregister(userId: String): String
+  register(userId: String): User
+  unregister(userId: String): User
 }

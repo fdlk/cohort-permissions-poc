@@ -10,6 +10,12 @@ class FusionAPI extends RESTDataSource {
     return this.get('user/search', {queryString})
   }
 
+  async getUser(userId) {
+    const response = await this.get(`user/${userId}`)
+    console.log(response)
+    return response.user
+  }
+
   async getRegistrations(userId, applicationId) {
     return this.get(`user/registration/${userId}/${applicationId}`)
   }
@@ -19,26 +25,16 @@ class FusionAPI extends RESTDataSource {
     return response.application
   }
 
-  async register(userId, applicationId, roles) {
+  async register(userId, applicationId) {
     return this.post(`user/registration/${userId}`, {
       registration: {
-        applicationId,
-        roles
+        applicationId
       }
   })
   }
 
   async unregister(userId, applicationId) {
     return this.delete(`user/registration/${userId}/${applicationId}`)
-  }
-
-  async updateRoles(userId, applicationId, roles) {
-    return this.put(`user/registration/${userId}`, {
-      registration: {
-        applicationId,
-        roles
-      }
-    })
   }
 
   willSendRequest(request) {
