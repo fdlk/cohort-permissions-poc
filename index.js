@@ -3,7 +3,6 @@ const { RESTDataSource } = require('apollo-datasource-rest')
 const express = require("express")
 const { auth } = require('express-openid-connect')
 const morgan = require("morgan")
-const cors = require("cors")
 
 require("dotenv").config()
 
@@ -14,7 +13,6 @@ class FusionAPI extends RESTDataSource {
   }
 
   async searchUsers(queryString) {
-    console.log(this.baseURL)
     return this.get('user/search', {queryString})
   }
 
@@ -55,7 +53,13 @@ const typeDefs = gql`
     email: String!
     firstName: String
     lastName: String
-    registrations: [Registration]
+    roles: [String]
+  }
+
+  type Query {
+    applicationId: String
+    registeredUsers: [User]
+    users(searchQuery: String): [User]
   }
 
   type Registration {
@@ -64,21 +68,17 @@ const typeDefs = gql`
     roles: [String]
   }
 
-  type Query {
-    registeredUsers(applicationId: String): [User]
-    users(searchQuery: String): [User]
-  }
-
   type Mutation {
-    register(userId: String, applicationId: String, roles: [String]): Registration
-    updateRoles(userId: String, applicationId: String, roles: [String]): Registration
-    unregister(userId: String, applicationId: String): String
+    register(userId: String, roles: [String]): Registration
+    updateRoles(userId: String, roles: [String]): Registration
+    unregister(userId: String): String
   }
 `
 
 const resolvers = {
   Query: {
-    registeredUsers: async (_source, {applicationId}, { dataSources }) => {
+    applicationId: (_source, _args, { applicationId }) => applicationId,
+    registeredUsers: async (_source, _args, { dataSources, applicationId }) => {
       const response = await dataSources.fusionAPI.searchUsers(`registrations.applicationId:${applicationId}`)
       return response.users
     },
@@ -87,16 +87,22 @@ const resolvers = {
       return response.users
     },
   },
+  User: {
+    roles: async (user, _args, {applicationId}) => {
+      console.log("roles resolver", user)
+      return user.registrations.filter((reg)=>reg.applicationId === applicationId).flatMap(reg => reg.roles)
+    }
+  },
   Mutation: {
-    register: async (_source, {userId, applicationId, roles}, {dataSources}) => {
+    register: async (_source, {userId, roles}, {dataSources, applicationId}) => {
       const response = await(dataSources.fusionAPI.register(userId, applicationId, roles))
       return response.registration
     },
-    updateRoles: async (_source, {userId, applicationId, roles}, {dataSources}) => {
+    updateRoles: async (_source, {userId, roles}, {dataSources, applicationId}) => {
       const response = await(dataSources.fusionAPI.updateRoles(userId, applicationId, roles))
       return response.registration
     },
-    unregister: async(_source, {userId, applicationId}, {dataSources}) => {
+    unregister: async(_source, {userId}, {dataSources, applicationId}) => {
       await(dataSources.fusionAPI.unregister(userId, applicationId))
       return "OK"
     }
@@ -108,7 +114,12 @@ const dataSources = () => ({
 })
 
 const context = ({ req }) => {
-  return { token: process.env.FUSION_API_TOKEN }
+  const result = {
+    token: process.env.FUSION_API_TOKEN,
+    ...req.openid.user
+  }
+  console.log(result)
+  return result
 }
 
 const app = express()
@@ -120,15 +131,14 @@ app.use(auth({
     response_type: 'code'
   },
 }))
-app.use(cors({ origin: true, credentials: true }))
 
 app.use('/user', (req, res) => {
   console.log(req.openid.user)
-  res.send(`hello ${req.openid.user.email}. You have roles ${req.openid.user.roles}`)
+  res.send(`hello ${req.openid.user.email}. You have roles ${req.openid.user.roles} on application ${req.openid.user.applicationId}`)
 })
 
 const apollo = new ApolloServer({ typeDefs, resolvers, dataSources, context })
-apollo.applyMiddleware({ app })
+apollo.applyMiddleware({ app, cors: {credentials: true, origin: true} })
 const port =  process.env.SERVER_PORT || 4000
 app.listen(port, () => {
   console.log(`🚀 Listening on port ${port}`);
