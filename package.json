@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "Fleur Kelpin",
@@ -12,6 +13,8 @@
   "dependencies": {
     "apollo-datasource-rest": "^0.9.3",
     "apollo-server": "^2.17.0",
-    "graphql": "^15.3.0"
+    "dotenv": "^8.2.0",
+    "graphql": "^15.3.0",
+    "nodemon": "^2.0.4"
   }
 }

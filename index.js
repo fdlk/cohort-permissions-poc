@@ -1,10 +1,11 @@
-const { ApolloServer, gql } = require('apollo-server');
-const { RESTDataSource } = require('apollo-datasource-rest');
+const { ApolloServer, gql } = require('apollo-server')
+const { RESTDataSource } = require('apollo-datasource-rest')
+require("dotenv").config()
 
 class FusionAPI extends RESTDataSource {
   constructor() {
     super();
-    this.baseURL = 'https://alspac-auth.edge.molgenis.org/api/'
+    this.baseURL = process.env.FUSION_API_URL
   }
 
   async searchUsers(queryString) {
@@ -102,9 +103,11 @@ const dataSources = () => ({
   fusionAPI: new FusionAPI()
 })
 
-const context = () => ({
-  token: 'Thooteu2eshahk3eThaehoaz7eid4wou'
-})
+const context = ({ req }) => {
+  const authHeader = req.headers.authorization || ''
+  console.log(authHeader)
+  return { token: process.env.FUSION_API_TOKEN }
+}
 
 const server = new ApolloServer({ typeDefs, resolvers, dataSources, context });
 
