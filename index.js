@@ -1,5 +1,7 @@
-const { ApolloServer, gql } = require('apollo-server')
+const { ApolloServer, gql } = require('apollo-server-express')
 const { RESTDataSource } = require('apollo-datasource-rest')
+const express = require("express")
+const morgan = require("morgan")
 require("dotenv").config()
 
 class FusionAPI extends RESTDataSource {
@@ -105,13 +107,18 @@ const dataSources = () => ({
 
 const context = ({ req }) => {
   const authHeader = req.headers.authorization || ''
-  console.log(authHeader)
+  // console.log(authHeader)
   return { token: process.env.FUSION_API_TOKEN }
 }
 
-const server = new ApolloServer({ typeDefs, resolvers, dataSources, context });
+const app = express()
+app.use(morgan("common"))
+app.use(express.json())
 
-server.listen().then(({ url }) => {
-  console.log(`🚀  Server ready at ${url}`);
-});
+const apollo = new ApolloServer({ typeDefs, resolvers, dataSources, context });
+apollo.applyMiddleware({ app });
 
+const port =  process.env.SERVER_PORT || 4000
+app.listen(port, () => {
+  console.log(`🚀 Listening on port ${port}`);
+})
