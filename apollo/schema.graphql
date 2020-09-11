@@ -7,6 +7,7 @@ type Application {
 type Role {
   id: String!
   name: String!
+  description: String
   isDefault: Boolean!
   isSuperRole: Boolean!
 }

@@ -13,7 +13,9 @@ module.exports = {
   },
   User: {
     roles: async (user, _args, {applicationId}) => {
-      return user.registrations.filter((reg)=>reg.applicationId === applicationId).flatMap(reg => reg.roles)
+      return (user.registrations||[])
+        .filter((reg)=>reg.applicationId === applicationId)
+        .flatMap(reg => reg.roles)
     }
   },
   Mutation: {
